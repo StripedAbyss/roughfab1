@@ -61,7 +61,7 @@ void CGAL_2D_Polygon_Dart_Sampling_a(const vector<Polygon_2>& py, const double& 
 
     double xmin = 0;
     double ymin = 0;
-    double xmax = boxx;
+    double xmax = boxx / 2;
     double ymax = boxy;
     double minimal_d = 15;
     int total_iter = 1 / d;
@@ -262,8 +262,10 @@ vector<Polygon_2> get_triangulation_net(vector<Point_2> point_set, vector<Polygo
 
 pair<double, int> Beamsearch::calculateScore(const std::vector<Vector2d1>& polygons, int previous)
 {
+    double offset = 15;
     double areas = 0;
     double score = 0;
+    boxx /= 2;
     int now = 0;
     vector<Polygon_2> pys;
     vector<Polygon_2> ans;
@@ -273,12 +275,29 @@ pair<double, int> Beamsearch::calculateScore(const std::vector<Vector2d1>& polyg
         pys.push_back(Convert_Vector2d1_to_Polygon_2(*it));
     }
     vector<Point_2> getit;
+    /*
     CGAL_2D_Polygon_Dart_Sampling_a(pys, 0.002, getit);//离散取点，判断是否在图形外侧，返回点集
     //CGAL_2D_Polygon_Dart_Sampling_b(pys, 0.5, getit, 100);//离散取点，判断是否在图形外侧，返回点集
     ans = get_triangulation_net(getit, pys);//根据点集生成晶胞
     for (auto it = ans.begin(); it != ans.end(); it++) {
         output.push_back(Convert_Polygon_2_to_Vector2d1(*it));
     }
+    */
+    ///*
+    vector<Vector2d1> outerFrame{ { Vector2d(-offset, -offset - 1),Vector2d(boxx + offset, -offset - 1),Vector2d(boxx + offset, -offset),Vector2d(-offset, -offset) }//,
+                     // { Vector2d(boxx + offset + 1, -offset),Vector2d(boxx + offset + 1, boxy + offset),Vector2d(boxx + offset, boxy + offset),Vector2d(boxx + offset, -offset) },
+                      //{ Vector2d(boxx + offset, boxy + offset + 1),Vector2d(-offset, boxy + offset + 1),Vector2d(-offset, boxy + offset),Vector2d(boxx + offset, boxy + offset) },
+                      //{ Vector2d(-offset - 1, boxy + offset),Vector2d(-offset - 1, -offset),Vector2d(-offset, -offset),Vector2d(-offset, boxy + offset) }
+    };
+    boxx *= 2;
+    vector<Vector2d1> polygonsWithFrame{polygons};
+    polygonsWithFrame.insert(polygonsWithFrame.end(), outerFrame.begin(), outerFrame.end());
+    PL().HGP_2D_Polygons_One_Offsets_C(polygonsWithFrame, -offset, output);
+
+    for (auto it = output.begin(); it != output.end(); it++) {
+        ans.push_back(Convert_Vector2d1_to_Polygon_2(*it));
+    }
+    //*/
     geometry_layer_output2(output, polygons);
     for (auto it = ans.begin(); it != ans.end(); it++)
     {
@@ -499,8 +518,8 @@ void Beamsearch::work() {
     Vector2d1 boundingRect;//圆柱材料2维截面的矩形
     int beamWidth = 10;//这个即beamsearch算法的束宽
     boundingRect.push_back(Vector2d(0, 0));
-    boundingRect.push_back(Vector2d(boxx, 0));
-    boundingRect.push_back(Vector2d(boxx, boxy));
+    boundingRect.push_back(Vector2d(boxx / 2, 0));
+    boundingRect.push_back(Vector2d(boxx / 2, boxy));
     boundingRect.push_back(Vector2d(0, boxy));
     std::vector<Vector2d1> wtf = perior_geometry_put();//我们的test.txt中的元件各不相同，是个集合，如果要加入相同的元件，就使用该函数重复加入对应元件
     std::vector<Vector2d1> bestSolution = beamSearch(wtf, beamWidth, boundingRect);//核心算法，beamsearch算法
@@ -601,7 +620,21 @@ void Beamsearch::geometry_layer_output(vector<Vector2d1> a) {
         // 绘制多边形线条
         cv::polylines(rightimage, &pts, &num_points, 1, true, cv::Scalar(255, 255, 255), 2);
     }
+    /*
+    for (const auto& polygon : a) {
+        int cnt = polygon.size();
+        for (int i = 0; i < cnt; ++i) {
+            auto& vertex1 = polygon[i];
+            auto& vertex2 = polygon[(i + 1) % cnt];
 
+            // 将顶点坐标转换为OpenCV图像坐标系中的坐标
+            int x1 = vertex1.x;
+            int y1 = boxy - vertex1.y; // 在OpenCV中，图像的原点位于左上角，所以需要翻转y轴
+            cv::Point point(x, y);
+            points.push_back(point);
+        }
+    }
+    */
     // 左右翻转图像
     cv::Mat leftimage;
     cv::flip(rightimage, leftimage, 1);
@@ -629,17 +662,18 @@ void Beamsearch::geometry_layer_output2(vector<Vector2d1> a, vector<Vector2d1> b
     path = path + "output" + to_string(count) + ".jpg";
     cout << path << endl;
     ++count;
-
+    
+    int delta = 0;
     // 创建一个黑色的图像，尺寸为(boxy, boxx / 2)，数据类型为CV_64FC3，初始值为黑色
-    cv::Mat rightimage(boxy, boxx / 2, CV_64FC3, cv::Scalar(0, 0, 0));
+    cv::Mat rightimage(boxy + delta * 2, boxx / 2 + delta * 2, CV_64FC3, cv::Scalar(0, 0, 0));
 
     // 绘制多边形
     for (const auto& polygon : a) {
         std::vector<cv::Point> points;
         for (const auto& vertex : polygon) {
             // 将顶点坐标转换为OpenCV图像坐标系中的坐标
-            int x = vertex.x;
-            int y = boxy - vertex.y; // 在OpenCV中，图像的原点位于左上角，所以需要翻转y轴
+            int x = vertex.x + delta * 1;
+            int y = boxy - vertex.y + delta; // 在OpenCV中，图像的原点位于左上角，所以需要翻转y轴
             cv::Point point(x, y);
             points.push_back(point);
         }
@@ -654,8 +688,8 @@ void Beamsearch::geometry_layer_output2(vector<Vector2d1> a, vector<Vector2d1> b
         std::vector<cv::Point> points;
         for (const auto& vertex : polygon) {
             // 将顶点坐标转换为OpenCV图像坐标系中的坐标
-            int x = vertex.x;
-            int y = boxy - vertex.y; // 在OpenCV中，图像的原点位于左上角，所以需要翻转y轴
+            int x = vertex.x + delta * 1;
+            int y = boxy - vertex.y + delta; // 在OpenCV中，图像的原点位于左上角，所以需要翻转y轴
             cv::Point point(x, y);
             points.push_back(point);
         }
@@ -674,14 +708,14 @@ void Beamsearch::geometry_layer_output2(vector<Vector2d1> a, vector<Vector2d1> b
     cv::hconcat(leftimage, rightimage, symmetric_image);
 
     // 绘制一条垂直线
-    cv::Point point1(boxx / 2, boxy);
-    cv::Point point2(boxx / 2, 0);
+    cv::Point point1(boxx / 2 + delta * 2, boxy + delta * 2);
+    cv::Point point2(boxx / 2 + delta * 2, 0);
     cv::line(symmetric_image, point1, point2, cv::Scalar(0, 0, 255), 1);
 
     // 显示图像
-    //cv::imshow("Polygons", symmetric_image);
+    cv::imshow("Polygons", symmetric_image);
     cv::imwrite(path, symmetric_image);
-    //cv::waitKey(0);
+    cv::waitKey(0);
     return;
 }
 
@@ -874,6 +908,598 @@ void Beamsearch::PolygonModification1()
 {
 }
 
-void Beamsearch::PolygonModification2()
+Polygon_2 convex_output(std::vector<Point_2> points)
 {
+    Polygon_2 convex_hull;
+    CGAL::convex_hull_2(points.begin(), points.end(), std::back_inserter(convex_hull));
+    return convex_hull;
+}
+
+void findMaxTriangleArea(std::vector<Point>& points, std::vector<Point>& all_points) {
+    //图形粗料化，输入要处理曲线和整个图形的点信息，按顺序，在曲线上离散取点，找到最优解，若没有合法点，延长曲线（折现）末端与包围盒相交，得到新的曲线进行计算
+    double lenth = 0;
+    Point f, t;
+    auto num2 = points.begin();
+    auto num3 = points.end();
+    num2++;
+    num2++;
+    num3--;
+    //记录首尾点信息
+    f = *points.begin();
+    t = *(num3);
+    Point final_point;//最终点
+    double final_area = -1;//最终三角形面积
+    for (auto i = num2; i != num3; i++) {//计算周长
+        Point point1, point2;
+        point1 = *i;
+        i--;
+        point2 = *i;
+        lenth += sqrt(CGAL::squared_distance(point1, point2));
+        i++;
+    }
+    lenth /= 100;//周长的1/100作为步长
+    int f_num = 0, t_num = 0;//记录首尾点连线不合法的次数，优先选择少的一边延长
+    for (auto i = num2; i != num3; i++) {
+        double x = (*i).x();
+        double y = (*i).y();
+        Point point1, point2;
+        point1 = *i;
+        i--;
+        point2 = *i;
+        Segment_2 segment(point2, point1);//判断该边上的点是否合法
+        x -= (*i).x();
+        y -= (*i).y();
+        Point en = *i;
+        i++;
+        double div = sqrt(x * x + y * y);
+        x /= div;
+        y /= div;
+        x *= lenth;
+        y *= lenth;
+        while (CGAL::squared_distance(segment, en) == 0) {//点在边上
+            //计算是否没有碰撞，即是否合法
+            Segment ray1(f, en);
+            Segment ray2(t, en);
+            bool is = true;
+            for (auto j = num2; j != num3; j++) {
+                Point pointj1, pointj2;
+                pointj1 = *j;
+                j--;
+                pointj2 = *j;
+                j++;
+                Segment_2 seg(pointj2, pointj1);
+                if (seg == segment)continue;
+                if (CGAL::do_intersect(ray1, seg)) {
+                    f_num++;
+                    is = false;
+                    break;
+                }
+            }
+            for (auto j = num2; j != num3; j++) {
+                Point pointj1, pointj2;
+                pointj1 = *j;
+                j--;
+                pointj2 = *j;
+                j++;
+                Segment_2 seg(pointj2, pointj1);
+                if (seg == segment)continue;
+                if (CGAL::do_intersect(ray2, seg)) {
+                    t_num++;
+                    is = false;
+                    break;
+                }
+            }
+            if (is) {
+                Triangle triangle(f, t, en);
+                double area = abs(triangle.area());
+                if (area > final_area) {
+                    final_point = en;
+                    final_area = area;
+                }
+            }
+            en = Point(en.x() + x, en.y() + y);
+        }
+    }
+    if (final_area != -1) {//找到最优解
+        vector<Point> ans;
+        ans.push_back(f);
+        ans.push_back(final_point);
+        ans.push_back(t);
+        points = ans;
+        return;
+    }
+    else {//没找到最优解，需要延长曲线
+        Point f_next = *(num2);
+        auto tt = points.end();
+        tt -= 2;
+        Point t_next = *(tt);
+
+        Ray ray1(f_next, f);
+        Ray ray2(t_next, t);
+        Polygon_2 the_convex_polygon = convex_output(all_points);//包围盒
+        std::vector<Point_2> intersectionPointsRay1;
+        Point f_inter_point;
+        Point t_inter_point;
+        for (Polygon_2::Edge_const_iterator itt = the_convex_polygon.edges_begin(); itt != the_convex_polygon.edges_end(); ++itt)
+        {//计算与包围盒交点
+            Segment seg = *itt;
+            auto result1 = CGAL::intersection(seg, ray1);
+            auto result2 = CGAL::intersection(seg, ray2);
+            if (result1) {
+                if (const Point_2* ipoint = boost::get<Point_2>(&*result1)) {
+                    f_inter_point = *ipoint;
+                }
+            }
+            if (result2) {
+                if (const Point_2* ipoint = boost::get<Point_2>(&*result2)) {
+                    t_inter_point = *ipoint;
+                }
+            }
+        }
+        if (f_num > t_num) {
+            double fx = (f_inter_point).x();
+            double fy = (f_inter_point).y();
+            fx -= f.x();
+            fy -= f.y();
+            fx /= 7;//分为七份，不是直接到交点，而是一步步向外延伸
+            fy /= 7;
+            Point f_new(f.x() + fx, f.y() + fy);
+            while (CGAL::squared_distance(Segment(f, f_inter_point), f_new) == 0) {//跟新起点后再次寻点
+                for (auto i = num2; i != num3; i++) {
+                    double x = (*i).x();
+                    double y = (*i).y();
+                    Point point1, point2;
+                    point1 = *i;
+                    i--;
+                    point2 = *i;
+                    Segment_2 segment(point2, point1);
+                    x -= (*i).x();
+                    y -= (*i).y();
+                    Point en = *i;
+                    i++;
+                    double div = sqrt(x * x + y * y);
+                    x /= div;
+                    y /= div;
+                    x *= lenth;
+                    y *= lenth;
+                    while (CGAL::squared_distance(segment, en) == 0) {
+                        en = Point(en.x() + x, en.y() + y);
+                        Segment ray1(f_new, en);
+                        Segment ray2(t, en);
+                        bool is = true;
+                        for (auto j = num2; j != num3; j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray1, seg)) {
+                                f_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        for (auto j = num2; j != num3; j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray2, seg)) {
+                                t_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        if (is) {
+                            Triangle triangle(f, t, en);
+                            double area = abs(triangle.area());
+                            if (area > final_area) {
+                                final_point = en;
+                                final_area = area;
+                            }
+                        }
+                    }
+                }
+                if (final_area != -1) {
+                    vector<Point> ans;
+                    ans.push_back(f_new);
+                    ans.push_back(final_point);
+                    ans.push_back(t);
+                    points = ans;
+                    return;
+                }
+                f_new = Point(f_new.x() + fx, f_new.y() + fy);
+            }
+            f = f_inter_point;
+            double tx = (t_inter_point).x();
+            double ty = (t_inter_point).y();
+            tx -= t.x();
+            ty -= t.y();
+            tx /= 7;
+            ty /= 7;
+            Point t_new(t.x() + tx, t.y() + ty);
+            while (CGAL::squared_distance(Segment(t, t_inter_point), t_new) == 0) {
+                for (auto i = num2; i != num3; i++) {
+                    double x = (*i).x();
+                    double y = (*i).y();
+                    Point point1, point2;
+                    point1 = *i;
+                    i--;
+                    point2 = *i;
+                    Segment_2 segment(point2, point1);
+                    x -= (*i).x();
+                    y -= (*i).y();
+                    Point en = *i;
+                    i++;
+                    double div = sqrt(x * x * +y * y);
+                    x /= div;
+                    y /= div;
+                    x *= lenth;
+                    y *= lenth;
+                    while (CGAL::squared_distance(segment, en) == 0) {
+                        en = Point(en.x() + x, en.y() + y);
+                        Segment ray1(f, en);
+                        Segment ray2(t_new, en);
+                        bool is = true;
+                        for (auto j = num2; j != points.end(); j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray1, seg)) {
+                                f_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        for (auto j = num2; j != points.end(); j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray2, seg)) {
+                                t_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        if (is) {
+                            Triangle triangle(f, t, en);
+                            double area = abs(triangle.area());
+                            if (area > final_area) {
+                                final_point = en;
+                                final_area = area;
+                            }
+                        }
+                    }
+                }
+                if (final_area != -1) {
+                    vector<Point> ans;
+                    ans.push_back(f);
+                    ans.push_back(final_point);
+                    ans.push_back(t_new);
+                    points = ans;
+                    return;
+                }
+                t_new = Point(t_new.x() + tx, t_new.y() + ty);
+            }
+        }
+        else {//终点更新
+            double tx = (t_inter_point).x();
+            double ty = (t_inter_point).y();
+            tx -= t.x();
+            ty -= t.y();
+            tx /= 7;
+            ty /= 7;
+            Point t_new(t.x() + tx, t.y() + ty);
+            while (CGAL::squared_distance(Segment(t, t_inter_point), t_new) == 0) {
+                for (auto i = num2; i != num3; i++) {
+                    double x = (*i).x();
+                    double y = (*i).y();
+                    Segment_2 segment(*i, *(--i));
+                    x -= (*i).x();
+                    y -= (*i).y();
+                    Point en = *i;
+                    i++;
+                    double div = sqrt(x * x * +y * y);
+                    x /= div;
+                    y /= div;
+                    x *= lenth;
+                    y *= lenth;
+                    while (CGAL::squared_distance(segment, en) == 0) {
+                        en = Point(en.x() + x, en.y() + y);
+                        Segment ray1(f, en);
+                        Segment ray2(t_new, en);
+                        bool is = true;
+                        for (auto j = num2; j != num3; j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray1, seg)) {
+                                f_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        for (auto j = num2; j != num3; j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray2, seg)) {
+                                t_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        if (is) {
+                            Triangle triangle(f, t, en);
+                            double area = abs(triangle.area());
+                            if (area > final_area) {
+                                final_point = en;
+                                final_area = area;
+                            }
+                        }
+                    }
+                }
+                if (final_area != -1) {
+                    vector<Point> ans;
+                    ans.push_back(f);
+                    ans.push_back(final_point);
+                    ans.push_back(t_new);
+                    points = ans;
+                    return;
+                }
+                t_new = Point(t_new.x() + tx, t_new.y() + ty);
+            }
+            t = t_inter_point;
+            double fx = (f_inter_point).x();
+            double fy = (f_inter_point).y();
+            fx -= f.x();
+            fy -= f.y();
+            fx /= 7;
+            fy /= 7;
+            Point f_new(f.x() + fx, f.y() + fy);
+            while (CGAL::squared_distance(Segment(f, f_inter_point), f_new) == 0) {
+                for (auto i = num2; i != num3; i++) {
+                    double x = (*i).x();
+                    double y = (*i).y();
+                    Segment_2 segment(*i, *(--i));
+                    x -= (*i).x();
+                    y -= (*i).y();
+                    Point en = *i;
+                    i++;
+                    double div = sqrt(x * x * +y * y);
+                    x /= div;
+                    y /= div;
+                    x *= lenth;
+                    y *= lenth;
+                    while (CGAL::squared_distance(segment, en) == 0) {
+                        en = Point(en.x() + x, en.y() + y);
+                        Segment ray1(f_new, en);
+                        Segment ray2(t, en);
+                        bool is = true;
+                        for (auto j = num2; j != points.end(); j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray1, seg)) {
+                                f_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        for (auto j = num2; j != points.end(); j++) {
+                            Point pointj1, pointj2;
+                            pointj1 = *j;
+                            j--;
+                            pointj2 = *j;
+                            j++;
+                            Segment_2 seg(pointj2, pointj1);
+                            if (seg == segment)continue;
+                            if (CGAL::do_intersect(ray2, seg)) {
+                                t_num++;
+                                is = false;
+                                break;
+                            }
+                        }
+                        if (is) {
+                            Triangle triangle(f, t, en);
+                            double area = abs(triangle.area());
+                            if (area > final_area) {
+                                final_point = en;
+                                final_area = area;
+                            }
+                        }
+                    }
+                }
+                if (final_area != -1) {
+                    vector<Point> ans;
+                    ans.push_back(f_new);
+                    ans.push_back(final_point);
+                    ans.push_back(t);
+                    points = ans;
+                    return;
+                }
+                f_new = Point(f_new.x() + fx, f_new.y() + fy);
+            }
+
+        }
+    }
+    if (final_area == -1) {
+        cout << "错误";
+    }
+}
+
+void Beamsearch::PolygonModification2() {
+
+    //使用findMaxTriangleArea处理堵边与非堵边
+    vector<Vector2d1> newpolygons;
+    for (auto it = polygons.begin(); it != polygons.end(); it++)
+    {
+        Polygon_2 wewant = Convert_Vector2d1_to_Polygon_2(*it);
+        vector<Point> poly_points;
+        for (Polygon_2::Edge_const_iterator itt = wewant.edges_begin(); itt != wewant.edges_end(); ++itt) {
+            poly_points.push_back(itt->source());
+        }
+        bool stopit = 0;
+        while (1)
+        {
+            vector<Point> all_points;
+            for (Polygon_2::Edge_const_iterator itt = wewant.edges_begin(); itt != wewant.edges_end(); ++itt) {
+                all_points.push_back(itt->source());
+            }
+            vector<pair<Segment_2, int>> MarkEdges;
+            for (Polygon_2::Edge_const_iterator itt = wewant.edges_begin(); itt != wewant.edges_end(); ++itt) {
+                Point_2 start = itt->source();
+                Point_2 end = itt->target();
+                Ray ray1(start, end);
+                Ray ray2(end, start);
+                int nums1 = 0, nums2 = 0;
+                for (Polygon_2::Edge_const_iterator w = wewant.edges_begin(); w != wewant.edges_end(); ++w) {
+                    if ((w->source() == start && w->target() == end) || (w->source() == end && w->target() == start))continue;
+                    if (CGAL::do_intersect(ray1, *w))nums1++;
+                    if (CGAL::do_intersect(ray2, *w))nums2++;
+
+                }
+                pair<Segment_2, int> MarkEdge;
+                MarkEdge.first = (*itt);
+                MarkEdge.second = 0;
+                if ((nums1 >= 3) && (nums2 >= 3)) {
+                    MarkEdge.second = 2;
+                }
+                else if (nums1 == 2 && nums2 == 2)
+                {
+                    MarkEdge.second = 0;
+                }
+                else {
+                    MarkEdge.second = 1;
+                }
+                MarkEdges.push_back(MarkEdge);
+            }
+            stopit = 1;
+            for (int i = 0; i < MarkEdges.size(); i++)
+            {
+                if (MarkEdges[i].second == 2)
+                {
+                    stopit = 0;
+                    break;
+                }
+            }
+            if (stopit == 1)break;
+            for (int i = 0; i < MarkEdges.size(); i++)
+            {
+                int size = MarkEdges.size();
+                int tab = MarkEdges[i].second;
+                if (tab == 2)
+                {
+                    int first = (i - 1 + size) % size;
+                    while (true)
+                    {
+                        if (MarkEdges[first].second == 1 || MarkEdges[first].second == 0)break;
+                        first = (first - 1 + size) % size;
+                    }
+                    Segment first_edge = MarkEdges[first].first;
+                    Point point1 = first_edge.source();
+
+                    int last = (i + 1) % size;
+                    while (true)
+                    {
+                        if (MarkEdges[last].second == 1 || MarkEdges[last].second == 0)break;
+                        last = (last + 1) % size;
+                    }
+                    Segment last_edge = MarkEdges[last].first;
+                    Point point2 = last_edge.target();
+                    vector<Point> points;//your target point set
+                    points.push_back(point1);
+                    int start = first + 1;
+                    while (1) {
+                        Point temp_point;
+                        Segment newedge = MarkEdges[start].first;
+                        temp_point = newedge.source();
+                        points.push_back(temp_point);
+                        start++;
+                        if (newedge.target() == point2)
+                        {
+                            points.push_back(point2);
+                            break;
+                        }
+                    }
+
+                    vector<Point> ans;
+                    vector<Point> origin_points = points;
+                    cout << "对于一个堵边集：" << endl;
+                    for (auto pp = points.begin(); pp != points.end(); pp++)cout << (*pp) << "||||";
+                    cout << endl;
+                    cout << "当前全点集：" << endl;
+                    for (auto pp = all_points.begin(); pp != all_points.end(); pp++)cout << (*pp) << "||||";
+                    cout << endl;
+                    Polygon_2 pf(all_points.begin(), all_points.end());
+                    vector<Vector2d1> pfv;
+                    pfv.push_back(Convert_Polygon_2_to_Vector2d1(pf));
+                    //geometry_layer_output(pfv);
+
+                    findMaxTriangleArea(points, all_points);
+                    cout << "输出当前改过后的堵边集" << endl;
+                    for (auto pp = points.begin(); pp != points.end(); pp++)cout << (*pp) << "||||";
+                    cout << endl;
+
+
+                    for (int gg = 0; gg < all_points.size(); gg++)
+                    {
+                        bool is = 0, isfirst = 0;
+                        for (int hh = 0; hh < origin_points.size(); hh++)
+                        {
+                            if (all_points[gg] == origin_points[hh])is = 1;
+                        }
+                        if (is == 0)ans.push_back(all_points[gg]);
+                        if (all_points[gg] == point1) {
+                            for (int hh = 0; hh < points.size(); hh++)
+                            {
+                                ans.push_back(points[hh]);
+                            }
+                        }
+                    }
+                    cout << "输出当前改过后的全点集" << endl;
+                    for (auto pp = ans.begin(); pp != ans.end(); pp++)cout << (*pp) << "||||";
+                    cout << endl;
+
+                    Polygon_2 newans(ans.begin(), ans.end());
+                    vector<Vector2d1> plv;
+                    plv.push_back(Convert_Polygon_2_to_Vector2d1(newans));
+                    geometry_layer_output2(plv, pfv);
+                    wewant = newans;
+                    break;
+                }
+            }
+        }
+        newpolygons.push_back(Convert_Polygon_2_to_Vector2d1(wewant));
+        Polygon_2 pf(poly_points.begin(), poly_points.end());
+        vector<Vector2d1> pfv;
+        pfv.push_back(Convert_Polygon_2_to_Vector2d1(pf));
+        geometry_layer_output2(pfv, newpolygons);
+    }
+    polygons = newpolygons;
 }
