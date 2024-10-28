@@ -90,27 +90,6 @@ pair<double, int> Beamsearch::calculateScore(const std::vector<Vector2d1>& polyg
     return make_pair(score, now);//返回得分与晶胞数量
 }
 
-bool Beamsearch::doPolygonsCollide2(const Vector2d1& poly1, const vector<Vector2d1>& poly2) {//碰撞检测，多边形求交
-    for (const Vector2d1& one_polygon : poly2) {
-        if (PL().HGP_2D_Two_Polygons_Intersection_C(poly1, one_polygon) > 0) {
-            return true; // 发生碰撞
-        }
-    }
-    return false; // 未发生碰撞
-}
-
-Vector2d1 Beamsearch::translatePolygon(const Vector2d1& polygon, double dx, double dy) {
-    std::vector<Vector2d> translatedVertices;
-    // 遍历所有顶点，对每个顶点进行平移操作，并添加到新的顶点列表中
-    for (auto it = polygon.begin(); it != polygon.end(); ++it) {
-
-        Vector2d translatedPoint((*it).x + dx, (*it).y + dy);
-        translatedVertices.push_back(translatedPoint);
-    }
-    // 使用新的顶点列表构造一个新的Vector2d1对象并返回
-    return Vector2d1(translatedVertices.begin(), translatedVertices.end());
-}
-
 std::vector<Vector2d1> Beamsearch::beamSearch(const std::vector<Vector2d1>& inputPolygons, int beamWidth, const Vector2d1& boundingRect) {
     // 初始化候选解决方案的id
     int id = 0;

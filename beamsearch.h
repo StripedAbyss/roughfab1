@@ -54,8 +54,6 @@ public:
     //void generateEdgeGML(TreeNode* node, std::ofstream& outfile);
     //void Convert_GmlTree_To_GML();
     pair<double, int> calculateScore(const std::vector<Vector2d1>& polygons, int previous);
-    bool doPolygonsCollide2(const Vector2d1& poly1, const vector<Vector2d1>& poly2);
-    Vector2d1 translatePolygon(const Vector2d1& polygon, double dx, double dy);
     std::vector<Vector2d1> beamSearch(const std::vector<Vector2d1>& inputPolygons, int beamWidth, const Vector2d1& boundingRect);
     void work();
     void test();

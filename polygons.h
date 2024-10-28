@@ -51,4 +51,6 @@ namespace utils {
     Polygon_2 Convert_Vector2d1_to_Polygon_2(Vector2d1 v2d);//类型转换Vector2d1转化为Polygon
     Vector2d1 Convert_Polygon_2_to_Vector2d1(Polygon_2 p2);//类型转换Polygon转化为Vector2d1
     double pointToPolygonDist(const Point_2& p, const Polygon_2& polygon);
+    bool doPolygonsCollide2(const Vector2d1& poly1, const vector<Vector2d1>& poly2);
+    Vector2d1 translatePolygon(const Vector2d1& polygon, double dx, double dy);
 }

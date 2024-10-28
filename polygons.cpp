@@ -52,4 +52,25 @@ double pointToPolygonDist(const Point_2& p, const Polygon_2& polygon) {//µãµ½¶à±
     return -std::sqrt(abs(minDist));
 }
 
+bool doPolygonsCollide2(const Vector2d1& poly1, const vector<Vector2d1>& poly2) {//Åö×²¼ì²â£¬¶à±ßĞÎÇó½»
+    for (const Vector2d1& one_polygon : poly2) {
+        if (PL().HGP_2D_Two_Polygons_Intersection_C(poly1, one_polygon) > 0) {
+            return true; // ·¢ÉúÅö×²
+        }
+    }
+    return false; // Î´·¢ÉúÅö×²
+}
+
+Vector2d1 translatePolygon(const Vector2d1& polygon, double dx, double dy) {
+    std::vector<Vector2d> translatedVertices;
+    // ±éÀúËùÓĞ¶¥µã£¬¶ÔÃ¿¸ö¶¥µã½øĞĞÆ½ÒÆ²Ù×÷£¬²¢Ìí¼Óµ½ĞÂµÄ¶¥µãÁĞ±íÖĞ
+    for (auto it = polygon.begin(); it != polygon.end(); ++it) {
+
+        Vector2d translatedPoint((*it).x + dx, (*it).y + dy);
+        translatedVertices.push_back(translatedPoint);
+    }
+    // Ê¹ÓÃĞÂµÄ¶¥µãÁĞ±í¹¹ÔìÒ»¸öĞÂµÄVector2d1¶ÔÏó²¢·µ»Ø
+    return Vector2d1(translatedVertices.begin(), translatedVertices.end());
+}
+
 }
