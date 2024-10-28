@@ -21,6 +21,12 @@
     <ClInclude Include="tree.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="OutputWithLibigl.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="polygons.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="beamsearch.cpp">
@@ -30,6 +36,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="tree.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\dev\glad\src\glad.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="polygons.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

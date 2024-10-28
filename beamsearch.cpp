@@ -29,235 +29,12 @@ bool beamssort(const Vector2d1& poly1, const Vector2d1& poly2)
     return score1 > score2;
 }
 
-double pointToPolygonDist(const Point_2& p, const Polygon_2& polygon) {//点到多边形的距离;检验完成，没报错
-    int count = 0;
-    double minDist = INFINITY;
-
-    for (auto e = polygon.edges_begin(); e != polygon.edges_end(); ++e) {
-        const Point_2& a = e->source();
-        const Point_2& b = e->target();
-
-        // 判断点 p 与线段 ab 是否在同一水平线上，并且 p 在 ab 的左侧
-        if ((a.y() > p.y() != b.y() > p.y()) &&
-            (p.x() < (b.x() - a.x()) * (p.y() - a.y()) / (b.y() - a.y()) + a.x())) {
-            count++;
-        }
-
-        // 计算点 p 到线段 ab 的最短距离，并更新最小距离
-        Segment_2 s(a, b);
-        minDist = std::min(minDist, squared_distance(p, s));
-    }
-
-    if (count % 2 == 0) {
-        return std::sqrt(abs(minDist));
-
-    }
-    return -std::sqrt(abs(minDist));
-}
-
-void CGAL_2D_Polygon_Dart_Sampling_a(const vector<Polygon_2>& py, const double& d, vector<Point_2>& sampling_points)
-{//离散取点方式：均匀取点
-    Functs::MAssert(d > 0 && d < 1.0, "CGAL_2D_Polygon_Dart_Sampling if (!(d > 0 && d < 1.0))");
-
-    double xmin = 0;
-    double ymin = 0;
-    double xmax = boxx / 2;
-    double ymax = boxy;
-    double minimal_d = 15;
-    int total_iter = 1 / d;
-    double dx = xmax / total_iter;
-    double dy = ymax / total_iter;
-    vector<Point_2> insert_points;
-    for (int i = 0; i < total_iter; i++)
-    {
-        double x = xmin + dx * i;
-        for (int j = 0; j < total_iter; j++) {
-
-            double y = ymin + dy * j;
-            Point_2 point(x, y);
-            double distance = CGAL_IA_MAX_DOUBLE;
-            for (int num = 0; num < py.size(); num++) {
-                Polygon_2 poly = py[num];
-                distance = min(distance, pointToPolygonDist(point, poly));
-
-            }
-            if (distance > minimal_d)
-            {
-                insert_points.push_back(Point_2(x, y));
-            }
-        }
-    }
-    sampling_points = insert_points;
-}
-
-void findPolygons(vector<Segment_2> edges, vector<vector<Segment_2>>& polys) {
-    //将无序的边连成图形，可返回多个图形
-    while (!edges.empty()) {
-        vector<Segment_2> poly;
-        Segment_2 currentEdge = edges[0];
-        poly.push_back(currentEdge);
-        edges.erase(edges.begin());
-        while (true) {
-            Segment_2 nextEdge;
-            bool found = false;
-            for (auto it = edges.begin(); it != edges.end(); it++) {
-                if (it->source().x() == currentEdge.target().x() && it->source().y() == currentEdge.target().y())
-                {
-                    nextEdge = *it;
-                    edges.erase(it);
-                    found = true;
-                    break;
-                }
-                else if (it->target().x() == currentEdge.target().x() && it->target().y() == currentEdge.target().y())
-                {
-                    Segment_2 wewant(Point_2(it->target().x(), it->target().y()), Point_2(it->source().x(), it->source().y()));
-                    nextEdge = wewant;
-                    edges.erase(it);
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                poly.push_back(nextEdge);
-                currentEdge = nextEdge;
-            }
-            else {
-                break;
-            }
-        }
-        polys.push_back(poly);
-    }
-}
-
-Polygon_2 Convert_Vector2d1_to_Polygon_2(Vector2d1 v2d)//类型转换Vector2d1转化为Polygon
-{
-    vector<Point_2> pts;
-    for (auto itt = v2d.begin(); itt != v2d.end(); itt++)
-    {
-        Point_2 temp((*itt).x, (*itt).y);
-        pts.push_back(temp);
-    }
-    Polygon_2 target(pts.begin(), pts.end());
-    return target;
-}
-
-Vector2d1 Convert_Polygon_2_to_Vector2d1(Polygon_2 p2)//类型转换Polygon转化为Vector2d1
-{
-    Vector2d1 target;
-    for (auto itt = p2.begin(); itt != p2.end(); itt++)
-    {
-        Vector2d temp((*itt).x(), (*itt).y());
-        target.push_back(temp);
-    }
-    return target;
-}
-struct SegmentComparator {
-    bool operator()(const Segment_2& a, const Segment_2& b) const {
-        // 实现比较逻辑，返回 true 如果 seg1 应该排在 seg2 之前
-        if (a.source().x() != b.source().x()) {
-            return a.source().x() < b.source().x();
-        }
-        else if (a.source().y() != b.source().y()) {
-            return a.source().y() < b.source().y();
-        }
-        else if (a.target().x() != b.target().x()) {
-            return a.target().x() < b.target().x();
-        }
-        else {
-            return a.target().y() < b.target().y();
-        }
-
-    }
-};
 
 bool comPoints(const Point_2& p1, const Point_2& p2) {
     if (p1.x() != p2.x()) {
         return p1.x() < p2.x();
     }
     return p1.y() < p2.y();
-}
-
-vector<Polygon_2> get_triangulation_net(vector<Point_2> point_set, vector<Polygon_2> py)
-{//使用Delaunay生成网格图，去除过长的边，找到连续的边缘点，即可返回图形
-    Delaunay triangulation;
-    triangulation.insert(point_set.begin(), point_set.end());//生成网格图
-    double maxlength = 400;
-    vector<Segment_2> one_face_edges;
-    map<Segment_2, int, SegmentComparator> edge_map;
-    for (Delaunay::Finite_faces_iterator fit = triangulation.finite_faces_begin(); fit != triangulation.finite_faces_end(); ++fit) {
-        // 遍历三角形的三条边.
-        bool tab = false;
-        Delaunay::Vertex_handle v1 = fit->vertex(0);
-        Delaunay::Vertex_handle v2 = fit->vertex(1);
-        Delaunay::Vertex_handle v3 = fit->vertex(2);
-        Point_2 wt1 = v1->point();
-        Point_2 wt2 = v2->point();
-        Point_2 wt3 = v3->point();
-        Segment_2 edge1(wt2, wt1);
-        Segment_2 edge2(wt3, wt1);
-        Segment_2 edge3(wt3, wt2);
-        if (comPoints(wt1, wt2)) {
-            Segment_2 edge(wt1, wt2);
-            edge1 = edge;
-        }
-        else {
-            Segment_2 edge(wt2, wt1);
-            edge1 = edge;
-        }
-
-        if (comPoints(wt2, wt3)) {
-            Segment_2 edge(wt2, wt3);
-            edge2 = edge;
-        }
-        else {
-            Segment_2 edge(wt3, wt2);
-            edge2 = edge;
-        }
-
-        if (comPoints(wt1, wt3)) {
-            Segment_2 edge(wt1, wt3);
-            edge3 = edge;
-        }
-        else {
-            Segment_2 edge(wt3, wt1);
-            edge3 = edge;
-        }
-        double edge1_length = CGAL::to_double(edge1.squared_length());
-        double edge2_length = CGAL::to_double(edge2.squared_length());
-        double edge3_length = CGAL::to_double(edge3.squared_length());
-        double maxedge = max(edge1_length, max(edge2_length, edge3_length));
-        if (maxedge < maxlength) {
-            edge_map[edge1]++;
-            edge_map[edge2]++;
-            edge_map[edge3]++;
-        }
-    }
-    for (auto it = edge_map.begin(); it != edge_map.end(); it++) {
-        if (it->second != 2) {
-            one_face_edges.push_back(it->first);
-        }
-    }
-    vector<vector<Segment_2>> ans;
-    findPolygons(one_face_edges, ans);
-    vector<Polygon_2> true_ans;
-    for (auto itt = ans.begin(); itt != ans.end(); itt++)
-    {
-        vector<Point_2> pots;
-        //cv::Mat image(boxy + 200, boxx + 200, CV_8UC3, cv::Scalar(255, 255, 255));
-        for (auto it = (*itt).begin(); it != (*itt).end(); it++)
-        {
-            Segment_2 edge = (*it);
-            pots.push_back(Point_2(edge.source().x(), edge.source().y()));
-            //cv::line(image, cv::Point(edge[0].x() + 100, edge[0].y() + 100),
-                //cv::Point(edge[1].x() + 100, edge[1].y() + 100), cv::Scalar(0, 0, 0), 1);
-        }
-        Polygon_2 wewant(pots.begin(), pots.end());
-        true_ans.push_back(wewant);
-        // 显示图像
-        //cv::imshow("Image with Point", image);
-        //cv::waitKey(0);
-    }
-    return true_ans;
 }
 
 pair<double, int> Beamsearch::calculateScore(const std::vector<Vector2d1>& polygons, int previous)
@@ -275,19 +52,10 @@ pair<double, int> Beamsearch::calculateScore(const std::vector<Vector2d1>& polyg
         pys.push_back(Convert_Vector2d1_to_Polygon_2(*it));
     }
     vector<Point_2> getit;
-    /*
-    CGAL_2D_Polygon_Dart_Sampling_a(pys, 0.002, getit);//离散取点，判断是否在图形外侧，返回点集
-    //CGAL_2D_Polygon_Dart_Sampling_b(pys, 0.5, getit, 100);//离散取点，判断是否在图形外侧，返回点集
-    ans = get_triangulation_net(getit, pys);//根据点集生成晶胞
-    for (auto it = ans.begin(); it != ans.end(); it++) {
-        output.push_back(Convert_Polygon_2_to_Vector2d1(*it));
-    }
-    */
-    ///*
-    vector<Vector2d1> outerFrame{ { Vector2d(-offset, -offset - 1),Vector2d(boxx + offset, -offset - 1),Vector2d(boxx + offset, -offset),Vector2d(-offset, -offset) }//,
-                     // { Vector2d(boxx + offset + 1, -offset),Vector2d(boxx + offset + 1, boxy + offset),Vector2d(boxx + offset, boxy + offset),Vector2d(boxx + offset, -offset) },
-                      //{ Vector2d(boxx + offset, boxy + offset + 1),Vector2d(-offset, boxy + offset + 1),Vector2d(-offset, boxy + offset),Vector2d(boxx + offset, boxy + offset) },
-                      //{ Vector2d(-offset - 1, boxy + offset),Vector2d(-offset - 1, -offset),Vector2d(-offset, -offset),Vector2d(-offset, boxy + offset) }
+    vector<Vector2d1> outerFrame{ { Vector2d(-offset, -offset - 1),Vector2d(boxx + offset, -offset - 1),Vector2d(boxx + offset, -offset),Vector2d(-offset, -offset) },
+                     { Vector2d(boxx + offset + 1, -offset),Vector2d(boxx + offset + 1, boxy + offset),Vector2d(boxx + offset, boxy + offset),Vector2d(boxx + offset, -offset) },
+                     { Vector2d(boxx + offset, boxy + offset + 1),Vector2d(-offset, boxy + offset + 1),Vector2d(-offset, boxy + offset),Vector2d(boxx + offset, boxy + offset) },
+                     { Vector2d(-offset - 1, boxy + offset),Vector2d(-offset - 1, -offset),Vector2d(-offset, -offset),Vector2d(-offset, boxy + offset) }
     };
     boxx *= 2;
     vector<Vector2d1> polygonsWithFrame{polygons};
@@ -297,7 +65,7 @@ pair<double, int> Beamsearch::calculateScore(const std::vector<Vector2d1>& polyg
     for (auto it = output.begin(); it != output.end(); it++) {
         ans.push_back(Convert_Vector2d1_to_Polygon_2(*it));
     }
-    //*/
+
     geometry_layer_output2(output, polygons);
     for (auto it = ans.begin(); it != ans.end(); it++)
     {
@@ -713,9 +481,9 @@ void Beamsearch::geometry_layer_output2(vector<Vector2d1> a, vector<Vector2d1> b
     cv::line(symmetric_image, point1, point2, cv::Scalar(0, 0, 255), 1);
 
     // 显示图像
-    cv::imshow("Polygons", symmetric_image);
+    //cv::imshow("Polygons", symmetric_image);
     cv::imwrite(path, symmetric_image);
-    cv::waitKey(0);
+    //cv::waitKey(0);
     return;
 }
 
