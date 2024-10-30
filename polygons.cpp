@@ -73,4 +73,12 @@ Vector2d1 translatePolygon(const Vector2d1& polygon, double dx, double dy) {
     return Vector2d1(translatedVertices.begin(), translatedVertices.end());
 }
 
+pair<int, int> rayExtension(int x1, int y1, int x2, int y2) {
+    int deltaY = y2 - y1;
+    int deltaX = x2 - x1;
+    y2 = y1 + deltaY * 1000000;
+    x2 = x1 + deltaX * 1000000;
+    return pair<int, int>(x2, y2);
+}
+
 }

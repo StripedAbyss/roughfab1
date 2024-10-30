@@ -719,7 +719,7 @@ void findMaxTriangleArea(std::vector<Point>& points, std::vector<Point>& all_poi
                 if (CGAL::do_intersect(ray1, seg)) {
                     f_num++;
                     is = false;
-                    break;
+                    continue;
                 }
             }
             for (auto j = num2; j != num3; j++) {
@@ -733,7 +733,7 @@ void findMaxTriangleArea(std::vector<Point>& points, std::vector<Point>& all_poi
                 if (CGAL::do_intersect(ray2, seg)) {
                     t_num++;
                     is = false;
-                    break;
+                    continue;
                 }
             }
             if (is) {
@@ -1165,7 +1165,8 @@ void Beamsearch::PolygonModification2() {
                     int first = (i - 1 + size) % size;
                     while (true)
                     {
-                        if (MarkEdges[first].second == 1 || MarkEdges[first].second == 0)break;
+                        assert(MarkEdges[first].second != 0);
+                        if (MarkEdges[first].second == 1)break;
                         first = (first - 1 + size) % size;
                     }
                     Segment first_edge = MarkEdges[first].first;
@@ -1174,7 +1175,8 @@ void Beamsearch::PolygonModification2() {
                     int last = (i + 1) % size;
                     while (true)
                     {
-                        if (MarkEdges[last].second == 1 || MarkEdges[last].second == 0)break;
+                        assert(MarkEdges[last].second != 0);
+                        if (MarkEdges[last].second == 1)break;
                         last = (last + 1) % size;
                     }
                     Segment last_edge = MarkEdges[last].first;
@@ -1206,7 +1208,17 @@ void Beamsearch::PolygonModification2() {
                     Polygon_2 pf(all_points.begin(), all_points.end());
                     vector<Vector2d1> pfv;
                     pfv.push_back(Convert_Polygon_2_to_Vector2d1(pf));
+
+                    outputLayer outL(boxx, boxy);
+                    PolygonWithCutDir poly;
+                    poly.polygon = Convert_Polygon_2_to_Vector2d1(pf);
+                    poly.addAntiClockWiseCut();
+                    outL.addPolygon(poly);
+                    
+                    outL.geometry_layer_output();
+
                     //geometry_layer_output(pfv);
+
 
                     findMaxTriangleArea(points, all_points);
                     cout << "输出当前改过后的堵边集" << endl;
@@ -1236,7 +1248,7 @@ void Beamsearch::PolygonModification2() {
                     Polygon_2 newans(ans.begin(), ans.end());
                     vector<Vector2d1> plv;
                     plv.push_back(Convert_Polygon_2_to_Vector2d1(newans));
-                    geometry_layer_output2(plv, pfv);
+                    //geometry_layer_output2(plv, pfv);
                     wewant = newans;
                     break;
                 }

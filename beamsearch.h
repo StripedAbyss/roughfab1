@@ -1,6 +1,7 @@
 #pragma once
 #include "tree.h"
 #include "polygons.h"
+#include "output.h"
 //#include "tinyxml2.hpp"
 #include <opencv2/opencv.hpp>
 
@@ -59,8 +60,10 @@ public:
     void test();
     void get_points_to_polygon();
     std::vector<Vector2d1> perior_geometry_put();
+    
     void geometry_layer_output(vector<Vector2d1> a);
     void geometry_layer_output2(vector<Vector2d1> a, vector<Vector2d1> b);
+    
 
     void geometry_layer_save(vector<Vector2d1> a, int num, double score);
     void geometry_layer_save1(vector<Vector2d1> a, vector<Vector2d1> b);

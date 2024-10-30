@@ -53,4 +53,5 @@ namespace utils {
     double pointToPolygonDist(const Point_2& p, const Polygon_2& polygon);
     bool doPolygonsCollide2(const Vector2d1& poly1, const vector<Vector2d1>& poly2);
     Vector2d1 translatePolygon(const Vector2d1& polygon, double dx, double dy);
+    pair<int, int> rayExtension(int x1, int y1, int x2, int y2);
 }

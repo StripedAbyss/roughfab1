@@ -137,11 +137,13 @@
     <ClInclude Include="OutputWithLibigl.h" />
     <ClInclude Include="polygons.h" />
     <ClInclude Include="tree.h" />
+    <ClInclude Include="output.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\dev\glad\src\glad.c" />
     <ClCompile Include="beamsearch.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="output.cpp" />
     <ClCompile Include="polygons.cpp" />
     <ClCompile Include="tree.cpp" />
   </ItemGroup>
