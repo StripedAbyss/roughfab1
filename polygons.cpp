@@ -76,9 +76,66 @@ Vector2d1 translatePolygon(const Vector2d1& polygon, double dx, double dy) {
 pair<int, int> rayExtension(int x1, int y1, int x2, int y2) {
     int deltaY = y2 - y1;
     int deltaX = x2 - x1;
-    y2 = y1 + deltaY * 1000000;
-    x2 = x1 + deltaX * 1000000;
+    y2 = y1 + deltaY * 100;
+    x2 = x1 + deltaX * 100;
     return pair<int, int>(x2, y2);
+}
+
+void GetMarkEdges(const Polygon_2 &poly, vector<pair<Segment_2, int>> &MarkEdges) {
+
+    for (Polygon_2::Edge_const_iterator itt = poly.edges_begin(); itt != poly.edges_end(); ++itt) {
+        Point_2 start = itt->source();
+        Point_2 end = itt->target();
+        Ray ray1(start, end);
+        Ray ray2(end, start);
+        int nums1 = 0, nums2 = 0;
+        for (Polygon_2::Edge_const_iterator w = poly.edges_begin(); w != poly.edges_end(); ++w) {
+            if ((w->source() == start && w->target() == end) || (w->source() == end && w->target() == start))continue;
+            if (CGAL::do_intersect(ray1, *w))nums1++;
+            if (CGAL::do_intersect(ray2, *w))nums2++;
+
+        }
+        pair<Segment_2, int> MarkEdge;
+        MarkEdge.first = (*itt);
+        MarkEdge.second = 0;
+        assert(nums1 >= 2);
+        assert(nums2 >= 2);
+        if (nums1 > 2) {
+            MarkEdge.second |= 1;
+        }
+        if (nums2 > 2) {
+            MarkEdge.second |= 2;
+        }
+        MarkEdges.push_back(MarkEdge);
+    }
+}
+
+void GetCutDir(const Polygon_2 &poly, vector<pair<int, int>> &cutIndex) {
+    int n = poly.size();
+    if (n < 3)return;
+    for (int i = 0; i < n; ++i) {
+        int j = i + 1;
+        if (j == n) {
+            j = 0;
+        }
+        Point_2 start = poly[i];
+        Point_2 end = poly[j];
+        Ray ray1(start, end);
+        Ray ray2(end, start);
+        int nums1 = 0, nums2 = 0;
+        for (Polygon_2::Edge_const_iterator w = poly.edges_begin(); w != poly.edges_end(); ++w) {
+            if ((w->source() == start && w->target() == end) || (w->source() == end && w->target() == start))continue;
+            if (CGAL::do_intersect(ray1, *w))nums1++;
+            if (CGAL::do_intersect(ray2, *w))nums2++;
+        }
+        if (nums1 == 2) {
+            cutIndex.push_back({ i,j });
+        }
+        else if (nums2 == 2) {
+            cutIndex.push_back({ j,i });
+        }
+     
+    }
 }
 
 }
